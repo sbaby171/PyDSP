@@ -4,6 +4,8 @@
 import sys
 import re
 import numpy as np
+import matplotlib # Explicity to remove dep for tkinter
+matplotlib.use("agg") # Use a different backend from tkinter
 import matplotlib.pyplot as plt
 
 
