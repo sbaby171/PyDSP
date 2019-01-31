@@ -30,10 +30,18 @@ import matplotlib.pyplot as plt
 #         signal.fplot() (dft or fft must first be taken).
 #         signal.tstem()
 #         signal.fstem() 
+# (p002): Related to (p001), Shoule we offer an keyword arg for the user to select the x-axis to be shown
+#         as time-stamps (Ts*[0,1,2,...,N-1]) or sample indices ([0,1,2,..., N-1])
 
 
 __author__ = "Max Sbabo, GIT: sbaby171"
 __version__ = "0.1"
+
+
+
+
+
+
     
 class signal(object):
     
@@ -57,7 +65,7 @@ class signal(object):
         self.nTs   = None # Note: Ts*[0,1,2,3,..., N-1]
         self.Phase = 0.0  # Note: Phase of signal 
 
-        self.NoiseSignal  = None # Note: Noise class object. To added to 'self.TimeSignal'. 
+        self.Noise        = None # Note: Noise class object. To added to 'self.TimeSignal'. 
         self.TimeSignal   = None # Note: Time domain representation of signal.
         self.FreqSignal   = None # Note: Frequency domain representation of signal.
 
@@ -181,6 +189,21 @@ class signal(object):
             self.Fo = float(1.0)/float(self.Per)
         return
   
+    # Plotting functions: 
+    # ===================
+   
+    def tstem(self, **kwargs):
+        func = "signal.tstem"
+        debug = False 
+        if "debug" in kwargs: debug = kwargs["debug"]
+        # for kw in kwargs: 
+        # other checks 
+        plt.figure()
+        plt.grid(True)
+        #plt.stem(self.Ns, self._timeSignal)  # MSN: Sample-index based 
+        plt.stem(self.nTs, self.TimeSignal) # MSN: Time-index based 
+        plt.show()
+
     # TODO: There might be a confusion between the 'name' of a signal and the 'type' 
     def setName(self,string):
         self.__class__.__name__ = string
@@ -192,10 +215,10 @@ class sin(signal):
     def __init__(self, **kwargs):
         super(sin, self).__init__(**kwargs)
         
-        if self.NoiseSignal is None:
+        if self.Noise is None:
             self.TimeSignal = ((self.A)*np.sin((self.Fo*2*np.pi)*self.nTs + self.Phase) + self.Dc)   
         else: 
-            self.TimeSignal = self.NoiseSignal._noise + ((self.A)*np.sin((self.Fo*2*np.pi)*self.nTs + self.Phase) + self.Dc)
+            self.TimeSignal = self.Noise._noise + ((self.A)*np.sin((self.Fo*2*np.pi)*self.nTs + self.Phase) + self.Dc)
         
         self.freqRes = float(self.Fs)/float(self.N)
         #self.__class__.__name__ = "Sine"
@@ -207,8 +230,8 @@ class cos(signal):
         
         self.TimeSignal = ((self.A)*np.cos((self.Fo*2*np.pi)*self.nTs + self.Phase) + self.Dc)   
         
-        if self.NoiseSignal is not None:
-            self.TimeSignal = self.NoiseSignal._noise + self.TimeSignal
+        if self.Noise is not None:
+            self.TimeSignal = self.Noise._noise + self.TimeSignal
 
         self.freqRes = float(self.Fs)/float(self.N)
         #self.__class__.__name__ = "Cosine" 
@@ -252,17 +275,19 @@ class noise(object):
 
 if __name__ == "__main__":
     a=3.2
-    dc=3.4
+    dc=0.45
     phase=5.8
     fo = 5000
     per = 1.0/fo # Add a constant to throw error.
-    fs = 12.34 * fo
-    n = 1024
+    fs = 25.89 * fo
+    n = 256
     _noise = noise(form = "awg", mean = 0, std = .5 , size = n)
 
-    x = sin(a=a,dc=dc,phase=phase, fs=fs,fo=fo,per=per, n=n, noise = _noise , debug = True)
+    x  = sin(a=a,dc=dc,phase=phase, fs=fs,fo=fo,per=per, n=n, debug = True)
+    xn = sin(a=a,dc=dc,phase=phase, fs=fs,fo=fo,per=per, n=n, noise = _noise , debug = True)
     print("Signal type = %s"%(type(x)))
     print("Signal name = %s"%(x.getName()))
+    x.tstem()
     
     
 
