@@ -12,9 +12,10 @@ import matplotlib.pyplot as plt
 #   - dirac function
 #   - unit step function 
 #   - rect signal
-#   - Distinction between 'name' and 'type' of a signal. 
+#   - (001) Distinction between 'name' and 'type' of a signal. 
 #     - We may want to determine what this distinction is between 
 #       ourselves and ultimately create the self.Type field and methods.
+#   - (002) Should signal base classes have a fundamental-frequency of period? 
 
 
 
@@ -53,19 +54,22 @@ class signal(object):
         # Initialize signal with all provided information
         self.init(**kwargs)
 
-        # Sanity-Check: Ensure no discrepancies in the signal settings.
-        # =============================================================
-        # 
- 
+        # Sanity-Check: 
+        # =============
+        # Ensure no discrepancies in the signal settings. 
+        #  
+
         # Check that users have provided a sampling frequency
         if self.Fs is None: 
             raise ValueError("Must provide sampling-frequency 'fs=<float>' to create signal.")
 
         # Check that user provided either a period or a fundamental frequency of there signal.
+        # TODO: This is still debatable if freqiuency and/or period should be part of the base class 
+        # ----- I think the answer should be yes and the answer may be in the fourier transform.
         if ( (self.Per is None) and (self.Fo is None) ): 
             raise ValueError("Must provide either frequency 'f=<float>' or the period 'p=<float>' to the create signal.")
         else: 
-            self.__resolve_period_and_frequency()
+            self.__resolvePerAndFreq()
 
         if self.N is None: 
             raise ValueError("Must provide the number of samples 'n=<int>' to create signal.")
@@ -150,7 +154,14 @@ class signal(object):
                 self.Noise = kwargs[kw] # MSN: This will alwasy be a noise object. Later could enfore that...
                 continue 
 
-    def __resolve_period_and_frequency(self):
+    def __resolvePerAndFreq(self):
+        func = "signal.__resolvePerAndFreq"
+        if (self.Per is not None) and (self.Fo is not None): 
+            per1 = self.Per
+            per2 = float(1.0/self.Fo)
+            if per1 != per2: 
+                raise RuntimeError("ERROR: (%s): Both 'per' and 'fo' but they do not equal the inverses of each other (p=f^(-1))\n."\
+                 " Period = %s\n. Fo = %s\n. Period = 1/Fo => %s ?= %s"%(func, str(self.Per), str(self.Fo), str(per1), str(per2)))
         if self.Per is None: 
             self.Per = float(1.0)/float(self.Fo)
         else: 
@@ -231,11 +242,12 @@ if __name__ == "__main__":
     dc=3.4
     phase=5.8
     fo = 5000
+    per = 0.00023
     fs = 12.34 * fo
     n = 1024
     _noise = noise(form = "awg", mean = 0, std = .5 , size = n)
 
-    x = sin(a=a,dc=dc,phase=phase, fs=fs,fo=fo, n=n, noise = _noise , debug = True)
+    x = sin(a=a,dc=dc,phase=phase, fs=fs,fo=fo,per=per, n=n, noise = _noise , debug = True)
     print("Signal type = %s"%(type(x)))
     print("Signal name = %s"%(x.getName()))
     
