@@ -9,14 +9,27 @@ import matplotlib.pyplot as plt
 
 # TODOS:
 # ======
-#   - dirac function
-#   - unit step function 
-#   - rect signal
-#   - (001) Distinction between 'name' and 'type' of a signal. 
-#     - We may want to determine what this distinction is between 
-#       ourselves and ultimately create the self.Type field and methods.
-#   - (002) Should signal base classes have a fundamental-frequency of period? 
-
+# 
+# Signal related: 
+# =============
+# (s001): dirac function
+# (s002): unit step function 
+# (s003): rect signal
+# (s004): Distinction between 'name' and 'type' of a signal. 
+#         We may want to determine what this distinction is between 
+#         ourselves and ultimately create the self.Type field and methods.
+# (s005): Should signal base classes have a fundamental-frequency of period? 
+# 
+# 
+# Plotting Related: 
+# =================
+# Note to self: This should be kept to a very minimum. MatplotLib is too flexible (complicated and complex) 
+#               to properly map all functionality. However, simple plotting functions should be consdiered. 
+# 
+# (p001): signal.tplot()
+#         signal.fplot() (dft or fft must first be taken).
+#         signal.tstem()
+#         signal.fstem() 
 
 
 __author__ = "Max Sbabo, GIT: sbaby171"
@@ -242,7 +255,7 @@ if __name__ == "__main__":
     dc=3.4
     phase=5.8
     fo = 5000
-    per = 0.00023
+    per = 1.0/fo # Add a constant to throw error.
     fs = 12.34 * fo
     n = 1024
     _noise = noise(form = "awg", mean = 0, std = .5 , size = n)
