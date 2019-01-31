@@ -7,14 +7,31 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+# TODOS:
+# ======
+#   - dirac function
+#   - unit step function 
+#   - rect signal
+#   - Distinction between 'name' and 'type' of a signal. 
+#     - We may want to determine what this distinction is between 
+#       ourselves and ultimately create the self.Type field and methods.
 
+
+
+__author__ = "Max Sbabo, GIT: sbaby171"
+__version__ = "0.1"
     
 class signal(object):
     
     
     def __init__(self, **kwargs):
-        
+        """ 
+        Signal Constructor: 
+   
+        All attributes of the base class "signal" must be declared here. Child-classes are allowed to create new attributes 
+        but not other functions held within this base class 'signal' is allowed to create new attributes. 
 
+        """  
         self.A     = 1.0  # Note: Amplitude of signal. 
         self.Dc    = 0.0  # Note: DC offset of signal.
         self.Fs    = None # Note: The sampling frequency implies that we are only dealing with sampled signals. 
@@ -29,18 +46,27 @@ class signal(object):
         self.NoiseSignal  = None # Note: Noise class object. To added to 'self.TimeSignal'. 
         self.TimeSignal   = None # Note: Time domain representation of signal.
         self.FreqSignal   = None # Note: Frequency domain representation of signal.
+
+        self.__class__.name = "signal"
         
 
         # Initialize signal with all provided information
         self.init(**kwargs)
 
         # Sanity-Check: Ensure no discrepancies in the signal settings.
+        # =============================================================
+        # 
+ 
+        # Check that users have provided a sampling frequency
         if self.Fs is None: 
             raise ValueError("Must provide sampling-frequency 'fs=<float>' to create signal.")
+
+        # Check that user provided either a period or a fundamental frequency of there signal.
         if ( (self.Per is None) and (self.Fo is None) ): 
             raise ValueError("Must provide either frequency 'f=<float>' or the period 'p=<float>' to the create signal.")
         else: 
             self.__resolve_period_and_frequency()
+
         if self.N is None: 
             raise ValueError("Must provide the number of samples 'n=<int>' to create signal.")
         
@@ -50,6 +76,35 @@ class signal(object):
         
         
     def init(self, **kwargs):
+        """ 
+        Initializes the signal settings based on keyword arguements provided to signal constructor.
+
+        Parameters: 
+        -----------
+        a : float, default: 1.0
+            Amplitude of the signal
+
+        dc : float, default: 0.0
+            DC-level (offset) of the signal.
+
+        phase : float, default: 0.0
+            Phase-shift of signal (radians).
+
+        per : float 
+            Period of signal. (This should be the inverse of 'fo')
+
+        fo : float 
+            Fundamental cyclic frequency of signal (inverse of 'per'). 
+
+        fs : float
+            Sampling frequency. 
+
+        n,N : int
+            Number of samples. 
+
+        noise : noise  
+            Noise object to be linear combined (added) to signal. 
+        """
         func = "signal.init"
         if "debug" in kwargs: 
             debug = kwargs["debug"]
@@ -101,8 +156,12 @@ class signal(object):
         else: 
             self.Fo = float(1.0)/float(self.Per)
         return
-   
-
+  
+    # TODO: There might be a confusion between the 'name' of a signal and the 'type' 
+    def setName(self,string):
+        self.__class__.__name__ = string
+    def getName(self):
+        return self.__class__.__name__
         
     
 class sin(signal):
@@ -115,7 +174,8 @@ class sin(signal):
             self.TimeSignal = self.NoiseSignal._noise + ((self.A)*np.sin((self.Fo*2*np.pi)*self.nTs + self.Phase) + self.Dc)
         
         self.freqRes = float(self.Fs)/float(self.N)
-        self.__class__.__name__ = "Sine"
+        #self.__class__.__name__ = "Sine"
+        self.setName("sine")
         
 class cos(signal):
     def __init__(self, **kwargs):
@@ -127,8 +187,8 @@ class cos(signal):
             self.TimeSignal = self.NoiseSignal._noise + self.TimeSignal
 
         self.freqRes = float(self.Fs)/float(self.N)
-        self.__class__.__name__ = "Cosine" 
-
+        #self.__class__.__name__ = "Cosine" 
+        self.setName("cosine")
 
 class noise(object):    
     def __init__(self, form, **kwargs):
@@ -175,7 +235,10 @@ if __name__ == "__main__":
     n = 1024
     _noise = noise(form = "awg", mean = 0, std = .5 , size = n)
 
-    sin(a=a,dc=dc,phase=phase, fs=fs,fo=fo, n=n, noise = _noise , debug = True)
+    x = sin(a=a,dc=dc,phase=phase, fs=fs,fo=fo, n=n, noise = _noise , debug = True)
+    print("Signal type = %s"%(type(x)))
+    print("Signal name = %s"%(x.getName()))
+    
     
 
     
