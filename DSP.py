@@ -192,7 +192,23 @@ class signal(object):
     # Plotting functions: 
     # ===================
    
-    def tstem(self, **kwargs):
+    def tstem(self, index = "time", **kwargs):
+        func = "signal.tstem"
+        # for kw in kwargs: 
+        # other checks 
+        plt.figure()
+        plt.grid(True)
+
+        if (index == "time"):
+            plt.stem(self.nTs, self.TimeSignal) 
+        elif (index == "samples"):
+            plt.stem(self.Ns, self.TimeSignal)
+        else: 
+            raise ValueError("ERROR: (%s): Arg(%s) only has the following options: %s"%(func,"index",str(["time","samples"])))
+
+        plt.show()
+
+    def tplot(self, **kwargs):
         func = "signal.tstem"
         debug = False 
         if "debug" in kwargs: debug = kwargs["debug"]
@@ -201,7 +217,7 @@ class signal(object):
         plt.figure()
         plt.grid(True)
         #plt.stem(self.Ns, self._timeSignal)  # MSN: Sample-index based 
-        plt.stem(self.nTs, self.TimeSignal) # MSN: Time-index based 
+        plt.plot(self.nTs, self.TimeSignal) # MSN: Time-index based 
         plt.show()
 
     # TODO: There might be a confusion between the 'name' of a signal and the 'type' 
@@ -287,7 +303,8 @@ if __name__ == "__main__":
     xn = sin(a=a,dc=dc,phase=phase, fs=fs,fo=fo,per=per, n=n, noise = _noise , debug = True)
     print("Signal type = %s"%(type(x)))
     print("Signal name = %s"%(x.getName()))
-    x.tstem()
+    x.tstem(index="samples")
+    #x.tplot()
     
     
 
