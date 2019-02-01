@@ -34,7 +34,7 @@ import matplotlib.pyplot as plt
 #         as time-stamps (Ts*[0,1,2,...,N-1]) or sample indices ([0,1,2,..., N-1])
 # (p003): Consider mergeing signal.__plot and signal.__stem into a single location (only do so when you move to 
 #         managing Figure objects).
-# 
+# (p004): ** Add docs to makeFigure, subplot, and makeGridSpec, showFigures() 
 #
 
 __author__ = "Max Sbabo, GIT: sbaby171"
@@ -44,7 +44,88 @@ __version__ = "0.1"
 # Add signal.qFT to check if the fourier transform of the signal was taken.
 
 
+# TODO: Look at all plt.figure() input vars + look into FIgure.supt()
+# Default Figure settings. 
+FIGSIZEW = 10.0 # matplotlib default = 6.4
+FIGSIZEH =  8.0 # matplotlib default = 4.8
+FIGSIZE  = [FIGSIZEW, FIGSIZEH]
+DPI = 100       # matplotlib default = 100
+FACECOLOR = 'w' # matplotlib default = 'w'
+EDGECOLOR = 'w' # matplotlib default = 'w'
+FIGI = 0 
+def makeFigure(grid=True, t=None, figsize=None, dpi=None, facecolor=None, edgecolor=None, num=None, frameon=True, debug=False):
+    func = "makeFigure" 
 
+    global FIGI 
+    FIGI += 1
+    if (debug): print("DEBUG: (%s): FIGI = %d"%(func, FIGI))
+
+    # Set default values: 
+    if grid: 
+        plt.rcParams['axes.grid'] = True 
+    if not figsize:
+        figsize = FIGSIZE
+    if not dpi:
+        dpi = DPI
+    if not facecolor:
+        facecolor = FACECOLOR
+    if not edgecolor:
+        edgecolor = EDGECOLOR
+    # Create 'Figure' object
+    if not num: 
+        figure = plt.figure(num=FIGI, figsize=figsize, dpi=dpi, facecolor=facecolor, edgecolor=edgecolor, frameon=frameon)
+    else: 
+        figure = plt.figure(num=num, figsize=figsize, dpi=dpi, facecolor=facecolor, edgecolor=edgecolor, frameon=frameon)
+    if (debug): print("DEBUG: (%s): Figure = %s"%(func, figure))
+
+    # Add title to figure. (TODO: other args. See source for figure.suptitle())
+    if t: 
+        figure.suptitle(t=t)
+  
+    # Return 'Figure' object
+    return figure
+
+def makeGridSpec(figure, nrows=1, ncols=1, wspace=None, hspace=None, debug=False):
+    func = "makeGridspec"
+    GS = figure.add_gridspec(nrows=nrows, ncols=ncols, hspace=hspace, wspace=wspace)
+    return GS
+
+def subplot(signals, nrows, ncols):
+    """ 
+    Produce a subplot of signals using matplotlib.pyplot.stem function
+
+    Parameters: 
+    ----------
+    signals : list
+    	A list of signals to be plotted. 
+    
+    nrows : int 
+    	Number of rows in grid. 
+
+    ncols : int 
+		Number of columns in grid.
+
+
+    """
+    func = "subplot_stem"
+    _signals = len(signals)
+    # Create GridSpec: 
+    hspace = .5
+    wspace = None 
+    figure = makeFigure() #  figure : Figure (matplotlib.figure.Figure)
+    gridspec = makeGridSpec(figure, nrows=nrows, ncols=ncols, wspace=wspace, hspace=hspace)
+    i = 0 
+    for ir in range(nrows):
+        for ic in range(ncols): 
+            # TODO: Here there is potential to extract nameing out the signal objects and place them on the labels.
+            ax = figure.add_subplot(gridspec[ir,ic], xlabel = "Signal:%d"%i)
+            ax.stem(signals[i].nTs, signals[i].TimeSignal)
+            i+=1
+    
+    return
+def showFigures():
+    plt.show(); 
+    return;
     
 class signal(object):
     
@@ -410,8 +491,9 @@ if __name__ == "__main__":
     print("Signal name = %s"%(x.getName()))
     x.tstem(index="samples", label="mlabel")
     #x.tplot()
+    subplot([x,xn], ncols=1,nrows=2 )
     
-    
+    showFigures() 
 
     
       
