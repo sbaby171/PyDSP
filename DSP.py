@@ -32,13 +32,16 @@ import matplotlib.pyplot as plt
 #         signal.fstem() 
 # (p002): Related to (p001), Shoule we offer an keyword arg for the user to select the x-axis to be shown
 #         as time-stamps (Ts*[0,1,2,...,N-1]) or sample indices ([0,1,2,..., N-1])
-
+# (p003): Consider mergeing signal.__plot and signal.__stem into a single location (only do so when you move to 
+#         managing Figure objects).
+# 
+#
 
 __author__ = "Max Sbabo, GIT: sbaby171"
 __version__ = "0.1"
 
 
-
+# Add signal.qFT to check if the fourier transform of the signal was taken.
 
 
 
@@ -65,9 +68,10 @@ class signal(object):
         self.nTs   = None # Note: Ts*[0,1,2,3,..., N-1]
         self.Phase = 0.0  # Note: Phase of signal 
 
-        self.Noise        = None # Note: Noise class object. To added to 'self.TimeSignal'. 
-        self.TimeSignal   = None # Note: Time domain representation of signal.
-        self.FreqSignal   = None # Note: Frequency domain representation of signal.
+        self.Noise        = None  # Note: Noise class object. To added to 'self.TimeSignal'. 
+        self.TimeSignal   = None  # Note: Time domain representation of signal.
+        self.FreqSignal   = None  # Note: Frequency domain representation of signal.
+        self.qFT          = False # Note: Query-Fourier transform. Set to true once the DFT of FFT of the signal was taken.
 
         self.__class__.name = "signal"
         
@@ -191,34 +195,135 @@ class signal(object):
   
     # Plotting functions: 
     # ===================
-   
-    def tstem(self, index = "time", **kwargs):
-        func = "signal.tstem"
+
+    def __plot(self, index = "time", domain = "time", **kwargs): 
+        """ 
+        Base plotting function for signals wrapping matplotlib.pyplot.plot(). 
+
+        Paramters: 
+        ----------
+        index : str, optional, default: "time"
+            X-axis markers. 
+            Options: 
+                - "time" : Time-stamp indices x,[n], where n = Ts*[0,1,2,3,...,N-1]
+                - "samples" : Samples indices x[n], where n = [0,1,2,3,...N-1]
+                TODO: Need to handle index options for the frequency domain ()
+
+        domaim : str, optional, default: "time"
+            Domain for signal to be plotted in. 
+            Options: 
+                - "time": Time domain representation.
+                - "freq": Frequency domain representation.
+
+        **kwargs : matplotlib.pyplot.plot keyword arguments, optional
+            See URL: https://matplotlib.org/api/_as_gen/matplotlib.pyplot.plot.html#matplotlib.pyplot.plot
+            NOTE: matplotlib.pyplot functions 'stem' and 'plot' contains different **kwargs
+           
+        """
+        func = "signal.__plot"
+
         # for kw in kwargs: 
         # other checks 
+
         plt.figure()
         plt.grid(True)
 
-        if (index == "time"):
-            plt.stem(self.nTs, self.TimeSignal) 
-        elif (index == "samples"):
-            plt.stem(self.Ns, self.TimeSignal)
+        # Check domain
+        if (domain == "time"):  
+            # Check index: 
+            if (index == "time"): 
+                # Plot signal
+                plt.plot(self.nTs, self.TimeSignal, **kwargs)
+            else: 
+                plt.plot(self.Ns, self.TimeSignal, **kwargs)
+            
+        # Check domain:
+        elif (domain == "freq"): 
+            if not self.qFT: 
+                raise RuntimeError("ERROR: (%s): The Fourier transform of the signal must be taken becomce plotting the frequency domain representation."%(func))
+            # Check index:
+            if (index == "freq"):  # self.nFs = freRes * [0,1,2,3, ... , N/2-1]
+                print("TODO: (%s):"%(func)) #plt.plot(self.freqRes*self.Ns[0:len(self.Ns)], self.FreqSignal, **kwargs)
+            else: # self.Ns -> [0,1,2,...N/2-1]
+                print("TODO: (%s)"%(func))
+
         else: 
             raise ValueError("ERROR: (%s): Arg(%s) only has the following options: %s"%(func,"index",str(["time","samples"])))
-
+  
         plt.show()
 
-    def tplot(self, **kwargs):
-        func = "signal.tstem"
-        debug = False 
-        if "debug" in kwargs: debug = kwargs["debug"]
+        return;
+
+    # Note: 
+    def __stem(self, index = "time", domain = "time", **kwargs): 
+        """ 
+        Base plotting function for signals wrapping matplotlib.pyplot.stem(). 
+
+        Paramters: 
+        ----------
+        index : str, optional, default: "time"
+            X-axis markers. 
+            Options: 
+                - "time" : Time-stamp indices x,[n], where n = Ts*[0,1,2,3,...,N-1]
+                - "samples" : Samples indices x[n], where n = [0,1,2,3,...N-1]
+                TODO: Need to handle index options for the frequency domain ()
+
+        domaim : str, optional, default: "time"
+            Domain for signal to be plotted in. 
+            Options: 
+                - "time": Time domain representation.
+                - "freq": Frequency domain representation.
+
+        **kwargs : matplotlib.pyplot.stem keyword arguments, optional
+            See URL: https://matplotlib.org/api/_as_gen/matplotlib.pyplot.stem.html#matplotlib.pyplot.stem    
+            NOTE: matplotlib.pyplot functions 'stem' and 'plot' contains different **kwargs
+
+        """
+        func = "signal.__plot"
+        indexOpts = ["time", "samples", "freq"]
+        domainOpts = ["time","freq"]
+
         # for kw in kwargs: 
         # other checks 
+
         plt.figure()
         plt.grid(True)
-        #plt.stem(self.Ns, self._timeSignal)  # MSN: Sample-index based 
-        plt.plot(self.nTs, self.TimeSignal) # MSN: Time-index based 
+
+        # Check domain
+        if (domain == "time"):  
+            # Check index: 
+            if (index == "time"): 
+                # Plot signal
+                plt.stem(self.nTs, self.TimeSignal, **kwargs)
+            elif (index == "samples"): 
+                plt.stem(self.Ns, self.TimeSignal, **kwargs)
+            else: 
+                raise ValueError("ERROR: (%s): Arg(%s) only has the following options: %s"%(func,"index",str(indexOpts)))
+            
+        # Check domain:
+        elif (domain == "freq"): 
+            if not self.qFT: 
+                raise RuntimeError("ERROR: (%s): The Fourier transform of the signal must be taken becomce plotting the frequency domain representation."%(func))
+            # Check index:
+            if (index == "freq"):  # self.nFs = freRes * [0,1,2,3, ... , N/2-1]
+                print("TODO: (%s):"%(func)) #plt.plot(self.freqRes*self.Ns[0:len(self.Ns)], self.FreqSignal, **kwargs)
+            else: # self.Ns -> [0,1,2,...N/2-1] # TODO: Samples
+                raise ValueError("ERROR: (%s): Arg(%s) only has the following options: %s"%(func,"index",str(indexOpts)))
+
+        else: 
+            raise ValueError("ERROR: (%s): Arg(%s) only has the following options: %s"%(func,"domain",str(domainOpts)))
+  
         plt.show()
+
+        return;
+
+   
+    def tstem(self, index = "time", **kwargs):
+        self.__stem(index=index, domain="time")
+
+    def tplot(self, **kwargs):
+        self.__plot(index=index, domain="time")
+
 
     # TODO: There might be a confusion between the 'name' of a signal and the 'type' 
     def setName(self,string):
@@ -303,7 +408,7 @@ if __name__ == "__main__":
     xn = sin(a=a,dc=dc,phase=phase, fs=fs,fo=fo,per=per, n=n, noise = _noise , debug = True)
     print("Signal type = %s"%(type(x)))
     print("Signal name = %s"%(x.getName()))
-    x.tstem(index="samples")
+    x.tstem(index="samples", label="mlabel")
     #x.tplot()
     
     
