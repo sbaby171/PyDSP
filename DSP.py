@@ -40,9 +40,6 @@ import matplotlib.pyplot as plt
 __author__ = "Max Sbabo, GIT: sbaby171"
 __version__ = "0.1"
 
-def hello_world(): 
-    print("Hello world from the DSP module.")
-
 
 # Add signal.qFT to check if the fourier transform of the signal was taken.
 
@@ -93,7 +90,9 @@ def makeGridSpec(figure, nrows=1, ncols=1, wspace=None, hspace=None, debug=False
     GS = figure.add_gridspec(nrows=nrows, ncols=ncols, hspace=hspace, wspace=wspace)
     return GS
 
-def subplot(signals, nrows, ncols):
+
+
+def subplot(signals, dim, debug=False):
     """ 
     Produce a subplot of signals using matplotlib.pyplot.stem function
 
@@ -102,27 +101,37 @@ def subplot(signals, nrows, ncols):
     signals : list
     	A list of signals to be plotted. 
     
-    nrows : int 
-    	Number of rows in grid. 
-
-    ncols : int 
-		Number of columns in grid.
-
+    dim : list or tuple 
+    	Number of rows and columns in grid. 
+        Ex.) (2,3) -> 2 rows, 3 columns
 
     """
-    func = "subplot_stem"
+    func = "subplot"
     _signals = len(signals)
+    
+    nrows = dim[0]
+    ncols = dim[1]
     # Create GridSpec: 
     hspace = .5
     wspace = None 
     figure = makeFigure() #  figure : Figure (matplotlib.figure.Figure)
     gridspec = makeGridSpec(figure, nrows=nrows, ncols=ncols, wspace=wspace, hspace=hspace)
+
+
+
     i = 0 
     for ir in range(nrows):
         for ic in range(ncols): 
             # TODO: Here there is potential to extract nameing out the signal objects and place them on the labels.
             ax = figure.add_subplot(gridspec[ir,ic], xlabel = "Signal:%d"%i)
-            ax.stem(signals[i].nTs, signals[i].TimeSignal)
+
+            # Signal type: signal OR numpy.ndarray
+            signalType = str(type(signals[i]))
+            if debug: print("DEBUG: (%s): Signal-type = %s"%(func,signalType))   
+            if "ndarray" in signalType:
+                ax.stem(signals[i])
+            else: 
+                ax.stem(signals[i].nTs, signals[i].TimeSignal)
             i+=1
     
     return
@@ -157,7 +166,7 @@ class signal(object):
         self.FreqSignal   = None  # Note: Frequency domain representation of signal.
         self.qFT          = False # Note: Query-Fourier transform. Set to true once the DFT of FFT of the signal was taken.
 
-        self.__class__.name = "signal"
+        self.__class__.name = "DSP.signal"
         
 
         # Initialize signal with all provided information
@@ -427,7 +436,7 @@ class sin(signal):
         
         self.freqRes = float(self.Fs)/float(self.N)
         #self.__class__.__name__ = "Sine"
-        self.setName("sine")
+        self.setName("DSP.sine")
         
 class cos(signal):
     def __init__(self, **kwargs):
@@ -440,7 +449,7 @@ class cos(signal):
 
         self.freqRes = float(self.Fs)/float(self.N)
         #self.__class__.__name__ = "Cosine" 
-        self.setName("cosine")
+        self.setName("DSP.cosine")
 
 class noise(object):    
     def __init__(self, form, **kwargs):
@@ -494,7 +503,7 @@ if __name__ == "__main__":
     print("Signal name = %s"%(x.getName()))
     x.tstem(index="samples", label="mlabel")
     #x.tplot()
-    subplot([x,xn], ncols=1,nrows=2 )
+    subplot([x,xn], dim=(2,1), debug=True)
     
     showFigures() 
 
