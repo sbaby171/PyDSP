@@ -40,6 +40,9 @@ import matplotlib.pyplot as plt
 __author__ = "Max Sbabo, GIT: sbaby171"
 __version__ = "0.1"
 
+def hello_world(): 
+    print("Hello world from the DSP module.")
+
 
 # Add signal.qFT to check if the fourier transform of the signal was taken.
 
