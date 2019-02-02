@@ -90,7 +90,8 @@ def makeGridSpec(figure, nrows=1, ncols=1, wspace=None, hspace=None, debug=False
     GS = figure.add_gridspec(nrows=nrows, ncols=ncols, hspace=hspace, wspace=wspace)
     return GS
 
-
+def hello_world():
+    print("Hello world from DSP module.")
 
 def subplot(signals, dim, debug=False):
     """ 
