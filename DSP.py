@@ -93,7 +93,7 @@ def makeGridSpec(figure, nrows=1, ncols=1, wspace=None, hspace=None, debug=False
 def hello_world():
     print("Hello world from DSP module.")
 
-def subplot(signals, dim, debug=False):
+def subplot(signals, dim, show=0, debug=False):
     """ 
     Produce a subplot of signals using matplotlib.pyplot.stem function
 
@@ -134,6 +134,8 @@ def subplot(signals, dim, debug=False):
             else: 
                 ax.stem(signals[i].nTs, signals[i].TimeSignal)
             i+=1
+    if show == 1:
+        plt.show()
     
     return
 def showFigures():
