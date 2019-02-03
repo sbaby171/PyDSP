@@ -112,6 +112,7 @@ def subplot(signals, dim, show=0, debug=False):
     
     nrows = dim[0]
     ncols = dim[1]
+
     # Create GridSpec: 
     hspace = .5
     wspace = None 
@@ -142,6 +143,28 @@ def showFigures():
     plt.show(); 
     return;
     
+
+
+def dSignal(a=1.0, dc=0.0, fo=5000.0, n=256, phase=0.0, per=None, fs=None, noise = False):
+    if not per: 
+        per = 1.0/fo # Add a constant to throw error.
+    if not fs:
+        fs = 25.89 * fo
+    
+    _noise = Noise(form = "awg", mean = 0, std = .5 , size = n)
+
+    ret = None 
+
+    if not noise: 
+        ret  = sin(a=a,dc=dc,phase=phase, fs=fs,fo=fo,per=per, n=n, debug = True)
+    else: 
+        ret = sin(a=a,dc=dc,phase=phase, fs=fs,fo=fo,per=per, n=n, noise = _noise , debug = True)
+
+    return ret 
+
+    
+
+
 class signal(object):
     
     
@@ -164,10 +187,16 @@ class signal(object):
         self.nTs   = None # Note: Ts*[0,1,2,3,..., N-1]
         self.Phase = 0.0  # Note: Phase of signal 
 
-        self.Noise        = None  # Note: Noise class object. To added to 'self.TimeSignal'. 
+        self.noise        = None  # Note: Noise class object. To added to 'self.TimeSignal'. 
         self.TimeSignal   = None  # Note: Time domain representation of signal.
         self.FreqSignal   = None  # Note: Frequency domain representation of signal.
         self.qFT          = False # Note: Query-Fourier transform. Set to true once the DFT of FFT of the signal was taken.
+       
+
+
+         
+        self.focusDomain = "time"     # TODO: Allow users to place focus variable on onthe particular object to easily control plots, len, etc.? 
+        self.__setFocusDomain = False # TODO: This may not be needed
 
         self.__class__.name = "DSP.signal"
         
@@ -272,7 +301,7 @@ class signal(object):
                 continue 
             if kw == "noise":
                 if (debug): print("DEBUG: (%s): Setting noise of signal to %s"%(func, str(kwargs[kw])))
-                self.Noise = kwargs[kw] # MSN: This will alwasy be a noise object. Later could enfore that...
+                self.noise = kwargs[kw] # MSN: This will alwasy be a noise object. Later could enfore that...
                 continue 
 
     def __resolvePerAndFreq(self):
@@ -288,6 +317,77 @@ class signal(object):
         else: 
             self.Fo = float(1.0)/float(self.Per)
         return
+
+
+    def setFocus(domain): 
+        func = "signal.setFocus"
+
+    
+        if domain == "time": 
+            self.focusDomain = "time"
+        elif domain == "freq":
+            self.focusDomain = "freq"
+        else: 
+            raise ValueError("ERROR: (%s): Arguement (%s) only takes the following options = %s"%(func,"domain",str(["time","freq"])))
+
+        self.__setFocusDomain = True
+
+
+    
+    def getTime(self):
+        """ 
+        Return time domain signal (numpy.ndarray type)
+        """
+        return self.TimeSignal 
+    def getFreq(self): 
+        """ 
+        Return frequency domain signal (numpy.ndarray type)
+        """
+        return self.FreqSignal
+    def getNoise(self):
+        """ 
+        Return the DSP.Noise object 
+        NOTE: for numpy.ndarray signal call 'getNoise()' on the returned Noise object.
+        """
+        return self.noise
+
+    # Overloaded operators:
+    # ====================
+
+
+
+        
+        
+
+
+    def __len__(self, domain = "time"): 
+        func = "len"
+        ret = None
+
+        if domain == "time": 
+            ret = len(self.TimeSignal)
+        elif domain == "freq":
+            ret = len(self.FreqSignal)
+        else: 
+            raise ValueError("ERROR: (%s): Arguement (%s) only takes the following options = %s"%(func,"domain",str(["time","freq"])))
+
+        return ret
+
+
+    def __getitem__(self, index, domain = "time"):
+        func = "signal.__getitem__"
+        ret = None 
+
+        if domain == "time": 
+            ret = self.TimeSignal[index]
+        elif domain == "freq":
+            ret = self.FreqSignal[index]
+        else: 
+            raise ValueError("ERROR: (%s): Arguement (%s) only takes the following options = %s"%(func,"domain",str(["time","freq"])))
+
+        return ret
+
+
   
     # Plotting functions: 
     # ===================
@@ -432,10 +532,10 @@ class sin(signal):
     def __init__(self, **kwargs):
         super(sin, self).__init__(**kwargs)
         
-        if self.Noise is None:
+        if self.noise is None:
             self.TimeSignal = ((self.A)*np.sin((self.Fo*2*np.pi)*self.nTs + self.Phase) + self.Dc)   
         else: 
-            self.TimeSignal = self.Noise._noise + ((self.A)*np.sin((self.Fo*2*np.pi)*self.nTs + self.Phase) + self.Dc)
+            self.TimeSignal = self.noise._noise + ((self.A)*np.sin((self.Fo*2*np.pi)*self.nTs + self.Phase) + self.Dc)
         
         self.freqRes = float(self.Fs)/float(self.N)
         #self.__class__.__name__ = "Sine"
@@ -447,16 +547,16 @@ class cos(signal):
         
         self.TimeSignal = ((self.A)*np.cos((self.Fo*2*np.pi)*self.nTs + self.Phase) + self.Dc)   
         
-        if self.Noise is not None:
-            self.TimeSignal = self.Noise._noise + self.TimeSignal
+        if self.noise is not None:
+            self.TimeSignal = self.noise._noise + self.TimeSignal
 
         self.freqRes = float(self.Fs)/float(self.N)
         #self.__class__.__name__ = "Cosine" 
         self.setName("DSP.cosine")
 
-class noise(object):    
+class Noise(object):    
     def __init__(self, form, **kwargs):
-        func = "noise.__init__"
+        func = "Noise.__init__"
         debug = False 
     
         forms = { "awg" : "Additive Gaussian White Noise"} 
@@ -488,7 +588,11 @@ class noise(object):
 
         if form == "awg": 
             self._noise = np.random.normal(self.mean, self.std, self.size) # Type = numpy.ndarray
-
+    def getNoise(self):
+        """ 
+        Return the noise signal. (numpy.ndarrary type) 
+        """
+        return self._noise
 
 if __name__ == "__main__":
     a=3.2
@@ -498,7 +602,7 @@ if __name__ == "__main__":
     per = 1.0/fo # Add a constant to throw error.
     fs = 25.89 * fo
     n = 256
-    _noise = noise(form = "awg", mean = 0, std = .5 , size = n)
+    _noise = Noise(form = "awg", mean = 0, std = .5 , size = n)
 
     x  = sin(a=a,dc=dc,phase=phase, fs=fs,fo=fo,per=per, n=n, debug = True)
     xn = sin(a=a,dc=dc,phase=phase, fs=fs,fo=fo,per=per, n=n, noise = _noise , debug = True)
