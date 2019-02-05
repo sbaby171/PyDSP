@@ -162,7 +162,36 @@ def dSignal(a=1.0, dc=0.0, fo=5000.0, n=256, phase=0.0, per=None, fs=None, noise
 
     return ret 
 
+def printArray(arr, attrs = False):
+    """ 
+    Print the numpy.ndarray contents. If optional keyword arguement 'attrs'
+    is 'True', the the attributes of the array will be printed.
     
+    Parameters:
+    -----------
+    arr : numpy.ndarray, 
+        ndarray to be printed (if not proper type error will be thrown)
+    attrs : bool, default: False
+        If True, attributes of input array will be printed.   
+    
+    """
+    if "numpy.ndarray" not in str(type(arr)): 
+        raise ValueError("(%s): input %s must be of type numpy.ndarray"
+                        %("printArray","arr"))
+    # Print type and attributes
+    if attrs: 
+        print("Printing the type and attributes of input numpy.ndarray:")
+        print("--------------------------------------------------------")
+        print("  - type(ndarray) = %s"%(str(type(arr))))
+        print("  - ndarray.ndim = %d"%(arr.ndim))
+        print("  - ndarray.shape = %s"%(str(arr.shape)))
+        print("  - ndarray.size = %d"%(arr.size))
+        print("  - ndarray.dtype = %s"%(arr.dtype))
+        print("  - ndarray.itemsize = %d"%(arr.itemsize))
+        print("  - ndarray.data = %s"%(str(arr.data)))
+    print("ndarray = %s"%(str(arr)))
+    
+    return    
 
 
 class signal(object):
@@ -354,12 +383,6 @@ class signal(object):
     # Overloaded operators:
     # ====================
 
-
-
-        
-        
-
-
     def __len__(self, domain = "time"): 
         func = "len"
         ret = None
@@ -373,7 +396,8 @@ class signal(object):
 
         return ret
 
-
+    # TODO: It doesnt really make sense to have an input arguement for 'domain' when the funciton is an operator [],
+    # ----- example, the following will error
     def __getitem__(self, index, domain = "time"):
         func = "signal.__getitem__"
         ret = None 
