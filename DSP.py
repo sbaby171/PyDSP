@@ -93,7 +93,7 @@ def makeGridSpec(figure, nrows=1, ncols=1, wspace=None, hspace=None, debug=False
 def hello_world():
     print("Hello world from DSP module.")
 
-def subplot(signals, dim, show=0, debug=False):
+def subplot(signals, dim, show=False, debug=False):
     """ 
     Produce a subplot of signals using matplotlib.pyplot.stem function
 
@@ -135,7 +135,7 @@ def subplot(signals, dim, show=0, debug=False):
             else: 
                 ax.stem(signals[i].nTs, signals[i].TimeSignal)
             i+=1
-    if show == 1:
+    if show:
         plt.show()
     
     return
@@ -201,10 +201,14 @@ class signal(object):
         """ 
         Signal Constructor: 
    
-        All attributes of the base class "signal" must be declared here. Child-classes are allowed to create new attributes 
-        but not other functions held within this base class 'signal' is allowed to create new attributes. 
+        All attributes of the base class "signal" must be declared here.
+
+        Child-classes are allowed to create new attributes.
+
+        However, no other methods associated with this 'signal' base class is allowed to create new attributes that are not first initialized here. 
 
         """  
+        self.debug = False 
         self.A     = 1.0  # Note: Amplitude of signal. 
         self.Dc    = 0.0  # Note: DC offset of signal.
         self.Fs    = None # Note: The sampling frequency implies that we are only dealing with sampled signals. 
@@ -416,7 +420,11 @@ class signal(object):
     # Plotting functions: 
     # ===================
 
-    def __plot(self, index = "time", domain = "time", **kwargs): 
+
+    # TODO: __plot and __stem need to come from the same centeral function. If they continue to be separate functions, maintenance will
+    #       be tidious, inefficient, and ultimately it is unncessary. 
+
+    def __plot(self, index = "time", domain = "time", title="", **kwargs): 
         """ 
         Base plotting function for signals wrapping matplotlib.pyplot.plot(). 
 
@@ -469,13 +477,17 @@ class signal(object):
 
         else: 
             raise ValueError("ERROR: (%s): Arg(%s) only has the following options: %s"%(func,"index",str(["time","samples"])))
-  
+ 
+
+        if title:
+            plt.title(title) 
+ 
         plt.show()
 
         return;
 
     # Note: 
-    def __stem(self, index = "time", domain = "time", **kwargs): 
+    def __stem(self, index = "time", domain = "time", title="", **kwargs): 
         """ 
         Base plotting function for signals wrapping matplotlib.pyplot.stem(). 
 
@@ -533,16 +545,21 @@ class signal(object):
         else: 
             raise ValueError("ERROR: (%s): Arg(%s) only has the following options: %s"%(func,"domain",str(domainOpts)))
   
+
+        if title:
+            plt.title(title) 
+
+
         plt.show()
 
         return;
 
    
-    def tstem(self, index = "time", **kwargs):
-        self.__stem(index=index, domain="time")
+    def tstem(self, index = "time", title="", **kwargs):
+        self.__stem(index=index, domain="time", title=title, **kwargs)
 
-    def tplot(self, **kwargs):
-        self.__plot(index=index, domain="time")
+    def tplot(self, index = "time", title="", **kwargs):
+        self.__plot(index=index, domain="time", title = title, **kwargs)
 
 
     # TODO: There might be a confusion between the 'name' of a signal and the 'type' 
