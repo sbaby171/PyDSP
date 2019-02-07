@@ -93,7 +93,11 @@ def makeGridSpec(figure, nrows=1, ncols=1, wspace=None, hspace=None, debug=False
 def hello_world():
     print("Hello world from DSP module.")
 
-def subplot(signals, dim, show=False, debug=False):
+
+
+
+# TODO: Track the keyword arg 'show'. I want to remove it but not sure yet. So just set to 'true' for now
+def subplot(signals, dim, show=True, debug=False):
     """ 
     Produce a subplot of signals using matplotlib.pyplot.stem function
 
@@ -139,6 +143,8 @@ def subplot(signals, dim, show=False, debug=False):
         plt.show()
     
     return
+
+
 def showFigures():
     plt.show(); 
     return;
@@ -424,9 +430,9 @@ class signal(object):
     # TODO: __plot and __stem need to come from the same centeral function. If they continue to be separate functions, maintenance will
     #       be tidious, inefficient, and ultimately it is unncessary. 
 
-    def __plot(self, index = "time", domain = "time", title="", **kwargs): 
+    def __Plot(self, Type, index = "time", domain="time", title="", **kwargs):
         """ 
-        Base plotting function for signals wrapping matplotlib.pyplot.plot(). 
+        Base plotting function for signals wrapping matplotlib.pyplot.plot and .stem. 
 
         Paramters: 
         ----------
@@ -447,6 +453,10 @@ class signal(object):
             See URL: https://matplotlib.org/api/_as_gen/matplotlib.pyplot.plot.html#matplotlib.pyplot.plot
             NOTE: matplotlib.pyplot functions 'stem' and 'plot' contains different **kwargs
            
+         **kwargs : matplotlib.pyplot.stem keyword arguments, optional
+            See URL: https://matplotlib.org/api/_as_gen/matplotlib.pyplot.stem.html#matplotlib.pyplot.stem    
+            NOTE: matplotlib.pyplot functions 'stem' and 'plot' contains different **kwargs
+
         """
         func = "signal.__plot"
 
@@ -460,10 +470,19 @@ class signal(object):
         if (domain == "time"):  
             # Check index: 
             if (index == "time"): 
-                # Plot signal
-                plt.plot(self.nTs, self.TimeSignal, **kwargs)
+                # Check Type: 
+                if (Type == "plot"):
+                    # Plot signal
+                    plt.plot(self.nTs, self.TimeSignal, **kwargs)
+                else: 
+                    plt.stem(self.nTs, self.TimeSignal, **kwargs)
             else: 
-                plt.plot(self.Ns, self.TimeSignal, **kwargs)
+                # Check Type: 
+                if (Type == "plot"):
+                    # Plot signal
+                    plt.plot(self.Ns, self.TimeSignal, **kwargs)
+                else: 
+                    plt.stem(self.Ns, self.TimeSignal, **kwargs)
             
         # Check domain:
         elif (domain == "freq"): 
@@ -485,81 +504,19 @@ class signal(object):
         plt.show()
 
         return;
-
-    # Note: 
-    def __stem(self, index = "time", domain = "time", title="", **kwargs): 
-        """ 
-        Base plotting function for signals wrapping matplotlib.pyplot.stem(). 
-
-        Paramters: 
-        ----------
-        index : str, optional, default: "time"
-            X-axis markers. 
-            Options: 
-                - "time" : Time-stamp indices x,[n], where n = Ts*[0,1,2,3,...,N-1]
-                - "samples" : Samples indices x[n], where n = [0,1,2,3,...N-1]
-                TODO: Need to handle index options for the frequency domain ()
-
-        domaim : str, optional, default: "time"
-            Domain for signal to be plotted in. 
-            Options: 
-                - "time": Time domain representation.
-                - "freq": Frequency domain representation.
-
-        **kwargs : matplotlib.pyplot.stem keyword arguments, optional
-            See URL: https://matplotlib.org/api/_as_gen/matplotlib.pyplot.stem.html#matplotlib.pyplot.stem    
-            NOTE: matplotlib.pyplot functions 'stem' and 'plot' contains different **kwargs
-
-        """
-        func = "signal.__plot"
-        indexOpts = ["time", "samples", "freq"]
-        domainOpts = ["time","freq"]
-
-        # for kw in kwargs: 
-        # other checks 
-
-        plt.figure()
-        plt.grid(True)
-
-        # Check domain
-        if (domain == "time"):  
-            # Check index: 
-            if (index == "time"): 
-                # Plot signal
-                plt.stem(self.nTs, self.TimeSignal, **kwargs)
-            elif (index == "samples"): 
-                plt.stem(self.Ns, self.TimeSignal, **kwargs)
-            else: 
-                raise ValueError("ERROR: (%s): Arg(%s) only has the following options: %s"%(func,"index",str(indexOpts)))
-            
-        # Check domain:
-        elif (domain == "freq"): 
-            if not self.qFT: 
-                raise RuntimeError("ERROR: (%s): The Fourier transform of the signal must be taken becomce plotting the frequency domain representation."%(func))
-            # Check index:
-            if (index == "freq"):  # self.nFs = freRes * [0,1,2,3, ... , N/2-1]
-                print("TODO: (%s):"%(func)) #plt.plot(self.freqRes*self.Ns[0:len(self.Ns)], self.FreqSignal, **kwargs)
-            else: # self.Ns -> [0,1,2,...N/2-1] # TODO: Samples
-                raise ValueError("ERROR: (%s): Arg(%s) only has the following options: %s"%(func,"index",str(indexOpts)))
-
-        else: 
-            raise ValueError("ERROR: (%s): Arg(%s) only has the following options: %s"%(func,"domain",str(domainOpts)))
-  
-
-        if title:
-            plt.title(title) 
+       
 
 
-        plt.show()
 
-        return;
-
+    
    
     def tstem(self, index = "time", title="", **kwargs):
-        self.__stem(index=index, domain="time", title=title, **kwargs)
+        #self.__stem(index=index, domain="time", title=title, **kwargs)
+        self.__Plot(Type="stem", index=index, domain="time", title=title, **kwargs)
 
     def tplot(self, index = "time", title="", **kwargs):
-        self.__plot(index=index, domain="time", title = title, **kwargs)
+        #self.__plot(index=index, domain="time", title = title, **kwargs)
+        self.__Plot(Type="plot", index=index, domain="time", title=title, **kwargs)
 
 
     # TODO: There might be a confusion between the 'name' of a signal and the 'type' 
