@@ -123,8 +123,6 @@ def subplot(signals, dim, show=True, debug=False):
     figure = makeFigure() #  figure : Figure (matplotlib.figure.Figure)
     gridspec = makeGridSpec(figure, nrows=nrows, ncols=ncols, wspace=wspace, hspace=hspace)
 
-
-
     i = 0 
     for ir in range(nrows):
         for ic in range(ncols): 
@@ -198,6 +196,22 @@ def printArray(arr, attrs = False):
     print("ndarray = %s"%(str(arr)))
     
     return    
+
+
+#TODO: How to embed latex into python source code. 
+def decay(a, b=1, start=0, stop=1, steps=1000, debug = False):
+    """ 
+    This function returns a numpy.ndarray representing an 'exponential decay' function. This function is of the form. 
+
+     x(t) = \beta\cdot e^{-\alpha\cdot t}
+
+
+    """
+    func = "decay"
+    ts = np.linspace(0,1,1000)
+    x = b * np.exp(a*(-ts))
+
+    return x 
 
 
 class signal(object):
@@ -608,7 +622,11 @@ if __name__ == "__main__":
     print("Signal name = %s"%(x.getName()))
     x.tstem(index="samples", label="mlabel")
     #x.tplot()
-    subplot([x,xn], dim=(2,1), debug=True)
+    #subplot([x,xn], dim=(2,1), debug=True)
+
+    # Decay function:
+    x = decay(a=9.8,b=1.02)
+    plt.stem(x)
     
     showFigures() 
 
