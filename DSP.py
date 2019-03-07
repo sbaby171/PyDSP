@@ -44,6 +44,67 @@ __version__ = "0.1"
 # Add signal.qFT to check if the fourier transform of the signal was taken.
 
 
+
+
+
+
+
+
+
+
+
+
+SI_UNITS = {'ps' : 10**(-12), 'ns' : 10**(-9), 'us' : 10**(-6), 'ms' : 10**(-3), 
+             'p' : 10**(-12), 'n' : 10**(-9), 'u' : 10**(-6), 'm' : 10**(-3),
+            'Hz' : 1, 'hz': 1, 's' : 1,
+           'THz' : 10**12, 'GHz' : 10**9, 'MHz' : 10**6, 'kHz' : 10**3, 'khz' : 10**3 ,
+             'T' : 10**12, 'G' : 10**9, 'M' : 10**6, 'k' : 10**3} 
+
+def SItoString(inStr):
+    """ 
+    Convert string, with or without SI-Units, into a float data type. 
+    
+    Syntax: <value>[.<decimals>]<SI-Unit>
+        
+    Concept examples: 
+    -----------------
+      Ex.) inStr = str("200 kHz") -> str("200kHz") -> float(200*(10**3))
+      Ex.) inStr = str("30.0 us") -> str("30.0us") -> float(30*(10**(-6)))
+    
+    Useage example:
+    ---------------
+      >> tmp = str("30.0 us")
+      >> dsp.SI_string_to_float(tmp, debug = True)
+            
+    Return: 
+    -------
+      ret : Float variable representing input-string.    
+
+    """
+    func = "SItoString"
+
+    result = None
+
+    p = re.compile(r'([\d\.]+)([a-zA-Z]+)')
+    letters = p.search(inStr)
+
+    if letters:
+        try:
+           value = float(letters.group(1))           
+           scale = float(SI_UNITS[letters.group(2)]) 
+           result = value * scale
+        except:
+           raise RuntimeError("(%s): Input string is not compatiable"%(func))
+    else:
+        try: 
+            result = float(inStr)  
+        except: 
+            raise RuntimeError("(%s): Input string is not compatiable"%(func))
+         
+    return result
+
+
+
 # TODO: Look at all plt.figure() input vars + look into FIgure.supt()
 # Default Figure settings. 
 FIGSIZEW = 10.0 # matplotlib default = 6.4
@@ -92,7 +153,32 @@ def makeGridSpec(figure, nrows=1, ncols=1, wspace=None, hspace=None, debug=False
 
 def hello_world():
     print("Hello world from DSP module.")
-
+    
+    
+def resolve_freq_and_period(f,p):
+    """ 
+    Resolve the period and frequency, and return the repective values. 
+    
+    If both value are given, it checks to ensure they are the inverses of each 
+    other. Otherwise, the frequency and period are provided
+    
+    Parameters: 
+    -----------
+      x1 : Freq or period
+      x2 : Period or frequency 
+    Returns: 
+        freq : 
+    """
+    if (f is not None) and (p is not None): 
+        per1 = p
+        per2 = float(1.0/f)
+        if per1 != per2: 
+            raise RuntimeError("Period and frequecny values do not match")
+    elif f is None: 
+        f = float(1.0)/float(p)
+    else: 
+        p= float(1.0)/float(f)
+    return f,p
 
 
 
@@ -219,158 +305,183 @@ class signal(object):
     
     def __init__(self, **kwargs):
         """ 
-        Signal Constructor: 
-   
-        All attributes of the base class "signal" must be declared here.
-
-        Child-classes are allowed to create new attributes.
-
-        However, no other methods associated with this 'signal' base class is allowed to create new attributes that are not first initialized here. 
-
+        Signal constructor: 
         """  
         self.debug = False 
-        self.A     = 1.0  # Note: Amplitude of signal. 
-        self.Dc    = 0.0  # Note: DC offset of signal.
-        self.Fs    = None # Note: The sampling frequency implies that we are only dealing with sampled signals. 
-        self.Ts    = None # Note: Sampling period
-        self.Fo    = None # Note: Fundamental frequency of signal. (TODO: signals typically have multple signals, so this the best to hold such info?)
-        self.Per   = None # Note: Period of siganl (TODO: See note above.)
-        self.N     = None # Note: Number of samples
-        self.Ns    = None # Note: Sampling indices
-        self.nTs   = None # Note: Ts*[0,1,2,3,..., N-1]
-        self.Phase = 0.0  # Note: Phase of signal 
+        self.A     = 1.0   
+        self.DC    = 0.0  
+        self.Fs    = None 
+        self.Ts    = None 
+        self.Fo    = None 
+        self.To    = None 
+        self.N     = None 
+        self.M     = None 
+        self.Ns    = None 
+        self.nTs   = None 
+        self.Phase = 0.0  
 
-        self.noise        = None  # Note: Noise class object. To added to 'self.TimeSignal'. 
+        self.Noise        = None  # Note: Noise class object. To added to 'self.TimeSignal'. 
         self.TimeSignal   = None  # Note: Time domain representation of signal.
         self.FreqSignal   = None  # Note: Frequency domain representation of signal.
         self.qFT          = False # Note: Query-Fourier transform. Set to true once the DFT of FFT of the signal was taken.
        
-
-
-         
         self.focusDomain = "time"     # TODO: Allow users to place focus variable on onthe particular object to easily control plots, len, etc.? 
         self.__setFocusDomain = False # TODO: This may not be needed
-
         self.__class__.name = "DSP.signal"
         
-
-        # Initialize signal with all provided information
         self.init(**kwargs)
-
-        # Sanity-Check: 
-        # =============
-        # Ensure no discrepancies in the signal settings. 
-        #  
-
-        # Check that users have provided a sampling frequency
-        if self.Fs is None: 
-            raise ValueError("Must provide sampling-frequency 'fs=<float>' to create signal.")
-
-        # Check that user provided either a period or a fundamental frequency of there signal.
-        # TODO: This is still debatable if freqiuency and/or period should be part of the base class 
-        # ----- I think the answer should be yes and the answer may be in the fourier transform.
-        if ( (self.Per is None) and (self.Fo is None) ): 
-            raise ValueError("Must provide either frequency 'f=<float>' or the period 'p=<float>' to the create signal.")
-        else: 
-            self.__resolvePerAndFreq()
-
-        if self.N is None: 
-            raise ValueError("Must provide the number of samples 'n=<int>' to create signal.")
+        self.sanity_checks()
         
-        # Set time-index
-        self.nTs = np.linspace(start=0, stop=(float(1)/self.Fs)*self.N, num=self.N)
+        if self.debug: self.debug_print()
+            
+
+        return 
+    
+ 
+
+    def cycle_based(self):
+        """ 
+        Resolve setting for signal based on cycle calculation.
+        """
+        if not self.Fo and not self.To: 
+            raise RuntimeError("Must provide fundamental period or frequency")
+
+        if self.M and self.N: 
+            self.Fs = ( self.M*(self.To) ) / self.N 
+        elif self.M and self.Fs: 
+            self.N = self.M * self.To * self.Fs
+        else:
+            raise RuntimeError("Must at least provide  either number of samples" \
+                               "or sampling frequency.")
+        return self.N, self.Fs
+            
      
         
+    def sanity_checks(self): 
+        """ 
+        Check all the setting of the signal.
         
+        Logic of checks: 
+        ----------------
+          - Fundmental period or frequency was provided. 
+          - If M, the number of cycles, was provided, re-calculation of N and Fs. 
+          
+          
+          Exiting checks and sets: 
+          - Check that the sampling frequency and period are set.  
+          - Check the N, the number of samples, are set.
+          - Set nTs: the time-index array.
+          
+        
+        """
+ 
+        # - Fundmental period or frequency was provided. 
+        if not self.Fo and not self.To: 
+            raise RuntimeError("Must provide fundamental period or frequency")
+        else: 
+            self.Fo, self.To = resolve_freq_and_period(f=self.Fo,p=self.To)
+
+        # - If M, the number of cycles, was provided, re-calculation of N and Fs. 
+        if self.M: 
+            self.N,self.Fs = self.cycle_based()
+        
+        # - Check that the sampling frequency and period are set. 
+        if not self.Fs and not self.Ts: 
+            raise ValueError("No values for the sampling frequency or period.")
+        else: 
+            self.Fs, self.Ts = resolve_freq_and_period(f=self.Fs,p=self.Ts)
+            
+        # - Check the N, the number of samples, are set.
+        if self.N is None: 
+            raise ValueError("Must provide the number of samples 'n=<int>' to create signal.")
+        else: 
+            self.Ns = np.arange(self.N)
+        
+        # - Set nTs: the time-index array.
+        self.nTs = np.linspace(start=0, stop=(float(1)/self.Fs)*self.N, num=self.N)
+        
+        return 
+        
+        
+
+     
     def init(self, **kwargs):
         """ 
         Initializes the signal settings based on keyword arguements provided to signal constructor.
+        
+        The sole job of this function is set the values. It will be job of another function 
+        to ensrue that things are 'sane'. 
 
         Parameters: 
         -----------
-        a : float, default: 1.0
+        A : float, default: 1.0
             Amplitude of the signal
 
-        dc : float, default: 0.0
+        DC : float, default: 0.0
             DC-level (offset) of the signal.
 
-        phase : float, default: 0.0
+        Phase : float, default: 0.0
             Phase-shift of signal (radians).
 
-        per : float 
+        To : float 
             Period of signal. (This should be the inverse of 'fo')
 
-        fo : float 
+        Fo : float 
             Fundamental cyclic frequency of signal (inverse of 'per'). 
 
-        fs : float
+        Fs : float
             Sampling frequency. 
+            
+        Ts : float
+            Sampling period.             
 
-        n,N : int
+        N : int
             Number of samples. 
+            
+        M : int
+            Number of samples.             
 
         noise : noise  
             Noise object to be linear combined (added) to signal. 
         """
-        func = "signal.init"
-        if "debug" in kwargs: 
-            debug = kwargs["debug"]
-        else: 
-            debug = False 
         for kw in kwargs:
-            if kw == "a":
-                if (debug): print("DEBUG: (%s): Setting amplitude of signal to %s"%(func, str(kwargs[kw])))
-                self.A = float(kwargs[kw]) # TODO: Special care to type errors from user? 
-                continue
-            if kw == "dc":
-                if (debug): print("DEBUG: (%s): Setting dc-offset of signal to %s"%(func, str(kwargs[kw])))
-                self.Dc = float(kwargs[kw]) # TODO: Special care to type errors from user? 
-                continue  
-            if kw == "n" or kw == "N":
-                if (debug): print("DEBUG: (%s): Setting samples of signal to %s"%(func, str(kwargs[kw])))
-                self.N   = int(kwargs[kw]) # TODO: Special care to type errors from user? 
-                self.Ns  = np.arange(self.N)
-                continue
-            if kw == "per":
-                if (debug): print("DEBUG: (%s): Setting period of signal to %s"%(func, str(kwargs[kw])))
-                self.Per  = float(kwargs[kw]) # TODO: Special care to type errors from user? 
-                # MSN: Only set the period. Dont also set the F because later we want to catch a discrepency if #s dont align
-                continue 
-            if kw == "fo":
-                if (debug): print("DEBUG: (%s): Setting frequency of signal to %s"%(func, str(kwargs[kw])))
-                self.Fo = float(kwargs[kw]) # TODO: Special care to type errors from user? 
-                # MSN: Only set F. Dont also set the PER because later we want to catch a discrepency if #s dont aign
-                continue   
-            if kw == "fs":
-                if (debug): print("DEBUG: (%s): Setting sampling-frequency of signal to %s"%(func, str(kwargs[kw])))
-                self.Fs = float(kwargs[kw]) # TODO: Special care to type errors from user? 
-                self.Ts = 1.0/self.Fs
-                # MSN: Only set F. Dont also set the PER because later we want to catch a discrepency if #s dont aign
-                continue 
-            if kw == "phase":
-                if (debug): print("DEBUG: (%s): Setting phase of signal to %s"%(func, str(kwargs[kw])))
-                self.PHASE = float(kwargs[kw]) # TODO: Special care to type errors from user? 
-                # MSN: Only set F. Dont also set the PER because later we want to catch a discrepency if #s dont aign
-                continue 
-            if kw == "noise":
-                if (debug): print("DEBUG: (%s): Setting noise of signal to %s"%(func, str(kwargs[kw])))
-                self.noise = kwargs[kw] # MSN: This will alwasy be a noise object. Later could enfore that...
-                continue 
-
-    def __resolvePerAndFreq(self):
-        func = "signal.__resolvePerAndFreq"
-        if (self.Per is not None) and (self.Fo is not None): 
-            per1 = self.Per
-            per2 = float(1.0/self.Fo)
-            if per1 != per2: 
-                raise RuntimeError("ERROR: (%s): Both 'per' and 'fo' but they do not equal the inverses of each other (p=f^(-1))\n."\
-                 " Period = %s\n. Fo = %s\n. Period = 1/Fo => %s ?= %s"%(func, str(self.Per), str(self.Fo), str(per1), str(per2)))
-        if self.Per is None: 
-            self.Per = float(1.0)/float(self.Fo)
-        else: 
-            self.Fo = float(1.0)/float(self.Per)
-        return
-
+            if kw == "A":
+                self.A = float(kwargs[kw]); continue
+            if kw == "DC":
+                self.DC = float(kwargs[kw]); continue  
+            if kw == "N":
+                self.N   = int(kwargs[kw]); continue
+            if kw == "M":
+                self.M   = int(kwargs[kw]); continue
+            if kw == "To":
+                self.To  = float(kwargs[kw]); continue 
+            if kw == "Fo":
+                self.Fo = float(kwargs[kw]); continue   
+            if kw == "Fs":
+                self.Fs = float(kwargs[kw]); continue 
+            if kw == "Fs":
+                self.Fs = float(kwargs[kw]); continue 
+            if kw == "Phase":
+                self.PHASE = float(kwargs[kw]); continue 
+            if kw == "Noise":
+                self.noise = kwargs[kw]; continue 
+            if kw == "debug":
+                self.debug = True;continue
+        return 
+                
+    def debug_print(self):
+        print("%s: id = %s"%(self.__class__.name, str(id(self))))
+        print(" - A.......: %s"%(str(self.A)))
+        print(" - DC......: %s"%(str(self.DC)))
+        print(" - Phase...: %s"%(str(self.Phase)))
+        print(" - N.......: %s"%(str(self.N)))
+        print(" - Fo......: %s"%(str(self.Fo)))
+        print(" - To......: %s"%(str(self.To)))
+        print(" - Fs......: %s"%(str(self.Fs)))
+        print(" - Ts......: %s"%(str(self.Ts)))
+        print("")
+        return 
+        
 
     def setFocus(domain): 
         func = "signal.setFocus"
@@ -544,11 +655,11 @@ class sin(signal):
     def __init__(self, **kwargs):
         super(sin, self).__init__(**kwargs)
         
-        if self.noise is None:
-            self.TimeSignal = ((self.A)*np.sin((self.Fo*2*np.pi)*self.nTs + self.Phase) + self.Dc)   
-        else: 
-            self.TimeSignal = self.noise._noise + ((self.A)*np.sin((self.Fo*2*np.pi)*self.nTs + self.Phase) + self.Dc)
+        self.TimeSignal = ((self.A)*np.sin((self.Fo*2*np.pi)*self.nTs + self.Phase) + self.DC)   
         
+        if self.Noise is not None:
+            self.TimeSignal = self.Noise._noise + self.TimeSignal
+            
         self.freqRes = float(self.Fs)/float(self.N)
         #self.__class__.__name__ = "Sine"
         self.setName("DSP.sine")
@@ -557,10 +668,10 @@ class cos(signal):
     def __init__(self, **kwargs):
         super(cos, self).__init__(**kwargs)
         
-        self.TimeSignal = ((self.A)*np.cos((self.Fo*2*np.pi)*self.nTs + self.Phase) + self.Dc)   
+        self.TimeSignal = ((self.A)*np.cos((self.Fo*2*np.pi)*self.nTs + self.Phase) + self.DC)   
         
-        if self.noise is not None:
-            self.TimeSignal = self.noise._noise + self.TimeSignal
+        if self.Noise is not None:
+            self.TimeSignal = self.Noise._noise + self.TimeSignal
 
         self.freqRes = float(self.Fs)/float(self.N)
         #self.__class__.__name__ = "Cosine" 
@@ -607,28 +718,34 @@ class Noise(object):
         return self._noise
 
 if __name__ == "__main__":
+
     a=3.2
     dc=0.45
     phase=5.8
     fo = 5000
-    per = 1.0/fo # Add a constant to throw error.
+    to = 1.0/fo 
     fs = 25.89 * fo
     n = 256
     _noise = Noise(form = "awg", mean = 0, std = .5 , size = n)
 
-    x  = sin(a=a,dc=dc,phase=phase, fs=fs,fo=fo,per=per, n=n, debug = True)
-    xn = sin(a=a,dc=dc,phase=phase, fs=fs,fo=fo,per=per, n=n, noise = _noise , debug = True)
+    x  = sin(A=a,Dc=dc,Fo=fo,To=to,Fs=fs,N=n,phase=phase,debug=True)
+    x  = sin(A=a,Dc=dc,Fo=fo,To=to,Fs=fs,N=n,phase=phase,Noise = _noise,debug=True)
+    
+    """
     print("Signal type = %s"%(type(x)))
     print("Signal name = %s"%(x.getName()))
-    x.tstem(index="samples", label="mlabel")
+    #x.tstem(index="samples", label="mlabel")
     #x.tplot()
     #subplot([x,xn], dim=(2,1), debug=True)
 
     # Decay function:
     x = decay(a=9.8,b=1.02)
-    plt.stem(x)
+    plt.plot(x)
+    
+    plt.grid()
     
     showFigures() 
+    """
 
     
       
