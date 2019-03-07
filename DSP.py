@@ -345,11 +345,18 @@ class signal(object):
         """
         if not self.Fo and not self.To: 
             raise RuntimeError("Must provide fundamental period or frequency")
+            
+            
+        # If ther only provide the number of cycles
+        if self.M and not self.N and not self.Fs: 
+            self.N = 2048
+            
+            
 
         if self.M and self.N: 
-            self.Fs = ( self.M*(self.To) ) / self.N 
+            self.Fs = ( self.N / self.M) * self.Fo
         elif self.M and self.Fs: 
-            self.N = self.M * self.To * self.Fs
+            self.N = ( self.Fs / self.Fo ) * self.M
         else:
             raise RuntimeError("Must at least provide  either number of samples" \
                                "or sampling frequency.")
@@ -456,7 +463,10 @@ class signal(object):
             if kw == "To":
                 self.To  = float(kwargs[kw]); continue 
             if kw == "Fo":
-                self.Fo = float(kwargs[kw]); continue   
+                try:
+                    self.Fo = float(kwargs[kw]); continue  
+                except:
+                    self.Fo = SItoString(kwargs[kw]); continue 
             if kw == "Fs":
                 self.Fs = float(kwargs[kw]); continue 
             if kw == "Fs":
